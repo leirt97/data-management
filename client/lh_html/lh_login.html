@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>登录</title>
+	<link rel="stylesheet" href="../lh_css/login.css">
+	<script src="../lh_js/jquery-3.2.1.min.js"></script>
+	<script src="../lh_js/vue.js"></script>
+	<script src="../lh_js/vue-resource.js"></script>
+	<script src="../lh_js/clientStorge.js"></script>
+</head>
+<body>
+	<!-- 页头 -->
+	<div class="login" id="login">
+		<div class="login-content" v-if="toggle">
+			<ul>
+				<!-- <li class="login-logo"><img src="../lh_img/login_logo.png" alt=""></li> -->
+				<li class="login-title"><h1>数据管理</h1></li>
+				<li><h2>使用用户名密码登陆</h2></li>
+				<li>
+					<input type="text" placeholder="用户名" v-model="usename" 
+					v-on:blur="errMessage[0].isFalse=!errMessage[0].reg.test(usename)">
+					<!-- v-show="errMessage[0].reg.test(usename)" -->
+					<div v-show="errMessage[0].isFalse" v-text="errMessage[0].nameErr" class="errTip"></div>
+					<!-- <err :msg="errMessage[0].nameErr" v-show="true"> --> <!--  错误信息提示 -->
+				</li>
+				<li>
+					<input type="password" placeholder="密码" v-model="password"
+					v-on:blur="errMessage[1].isFalse=!errMessage[1].reg.test(password)">
+					<div v-show="errMessage[1].isFalse" v-text="errMessage[1].passwordErr" class="errTip"></div>
+				</li>
+				<li><span class="login-btn" @click="send">登录</span></li>
+
+				<li><p class="tologin"></p></li>
+				<li class="login-complete">
+					没有账号？ 去<a href="#" @click="change">注册</a></li>
+			</ul>
+		</div>
+		<div class="regist-content" v-else >
+			<ul>
+				<li class="regist-top">注册 lagou ID</li>
+				<li>
+					<input type="text" placeholder="请输入用户名/手机号" v-model="registFileds.registName"
+					v-on:blur="errMessage[2].isFalse=!errMessage[2].reg.test(registFileds.registName)"></li>
+					<div v-show="errMessage[2].isFalse" v-text="errMessage[2].reNameErr" class="errTip"></div>
+				<li>
+					<input type="password" placeholder="密码" v-model="registFileds.registPassword"
+					v-on:blur="errMessage[3].isFalse=!errMessage[3].reg.test(registFileds.registPassword)"></li>
+					<div v-show="errMessage[3].isFalse" v-text="errMessage[3].rePassword" class="errTip"></div>
+				<li>
+					<input type="password" placeholder="确认密码" v-model="registFileds.registRePassword"
+					v-on:blur="errMessage[4].isFalse=!(registFileds.registPassword==registFileds.registRePassword)"></li>
+					<div v-show="errMessage[4].isFalse" v-text="errMessage[4].rerePassword" class="errTip"></div>
+				<li class="regist-code">
+					<input type="text" placeholder="验证码" v-model="registFileds.inputCode"
+					v-on:blur="errMessage[5].isFalse=!(registFileds.inputCode==code)">
+					<span v-text="code" @click="createCode"></span></li>
+					<div v-show="errMessage[5].isFalse" v-text="errMessage[5].codeErr" class="errTip"></div>
+				<li><span class="regist-btn" @click="registComplete" >提交</span></li>
+				<li><p class="tologin"></p></li>
+				<li class="regist-complete">已有账号？去<a href="#" @click="change">登陆</a></li>
+			</ul>
+		</div>
+	</div>
+
+	<!-- 错误信息组件 -->
+	<template id="err">
+		<div class="err">
+			<span v-text="msg"></span>
+		</div>
+	</template>
+
+	<script>
+		var err=Vue.extend({
+			template:"#err",
+			props:["msg"],
+		})
+	</script>
+
+	<script>
+		var vm=new Vue({
+			el:"#login",
+			components:{err:err},
+			data:{
+				usename:"",
+				isLogin:true, //判断用户是否登录
+				password:"",
+				toggle:true,   //切换登录或者注册
+				code:"",  //验证码					
+				registFileds:{
+					registName:"",
+					registPassword:"",
+					registRePassword:"",
+					inputCode:"",
+				},
+				errMessage:[
+					{nameErr:"用户名格式错误",reg:/\w{2,12}/,isFalse:false},
+					{passwordErr:"密码格式错误",reg:/\w{4,12}/,isFalse:false},
+					{reNameErr:"用户名大于2位小于12位",reg:/\w{2,12}/,isFalse:false},
+					{rePassword:"密码大于4位小于12位",reg:/\w{4,12}/,isFalse:false},
+					{rerePassword:"两次输入密码不一致",reg:/\w{4,12}/,isFalse:false},
+					{codeErr:"验证码输入错误",reg:/\w{4,12}/,isFalse:false},
+				]
+				
+			},
+			created:function(){
+				this.createCode();
+				if(client.fetch()==""){
+					this.isLogin=true;
+				}else{
+					this.isLogin=false;
+					this.usename=client.fetch().usename;
+				}
+			},
+			methods:{
+				send:function(){
+					this.$http({
+						url:"http://localhost:9090/admin/login/",
+						method:"POST",
+						data:JSON.stringify({
+							adminname:this.usename,
+							password:this.password
+						})
+					}).then(function(res){
+						if(res.data=='1'){
+							// alert("登录成功");
+							var obj={usename:this.usename,password:this.password};
+							client.save(obj);
+							this.isLogin=false;
+							setTimeout(function(){
+								window.location.href="lh_index.html";
+							},300)
+							//
+						}else if(res.data=="0"){
+							alert("账号或密码错误")
+						}
+					},function(){})
+				},
+				change:function(){
+					// alert(345);
+					for(var i in this.registFileds){
+						this.registFileds[i]="";
+					}
+					this.toggle=!this.toggle;//切换登陆注册
+				},
+				createRandom:function(length){   //创建随机数
+					return Math.floor(Math.random()*length);
+				},
+				createCode:function(){   //生成验证码
+					this.code="";
+					// console.log(546);
+					var arr=[1,2,3,4,5,6,7,8,9,'a','b','c'];
+					var codeLength=4; //验证码长度
+					for(var i=0;i<codeLength;i++){
+						this.code+=arr[this.createRandom(arr.length)];
+					}
+				},
+				registComplete:function(){
+					if(this.registFileds.inputCode!=this.code){
+						alert("验证码输入错误");
+					}else if(this.registFileds.registPassword!=this.registFileds.registRePassword){
+						alert("密码输入不一致")
+					}else if(this.registFileds.inputCode==this.code&&
+						this.registFileds.registPassword==this.registFileds.registRePassword){
+						this.$http({
+							url:"http://localhost:9090/admin/regist/",
+							method:"POST",
+							data:JSON.stringify({
+								adminname:this.registFileds.registName,
+								password:this.registFileds.registPassword
+							})
+						}).then(function(res){
+							if(res.data=="0"){
+								alert("用户名重复");
+							}else if(res.data=="1"){
+								for(var i in this.registFileds){   //清空注册栏
+										this.registFileds[i]="";
+								}
+								alert('注册成功,您现在可以去登陆了!');
+								this.toggle=!this.toggle;
+							}
+						},function(){})
+					}
+				}
+			}
+		})
+
+	</script>
+</body>
+</html>
